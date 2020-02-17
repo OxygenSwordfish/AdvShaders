@@ -1,0 +1,12 @@
+﻿  Source.cpp
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(91): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(119): warning C4305: 'argument': truncation from 'double' to 'float'
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(120): warning C4305: 'argument': truncation from 'double' to 'float'
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(173): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(174): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(178): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(179): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(181): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(182): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+h:\documents\year three\imat3907\assignment\terrain\terrain\src\source.cpp(195): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+  Terrain.vcxproj -> H:\Documents\Year Three\IMAT3907\Assignment\Terrain\Debug\Terrain.exe
