@@ -1,7 +1,15 @@
 #version 450 core
 layout (vertices =1) out;
 
-float GetTessLevel(float Distance0, float Distance1) ;
+
+float lambda = -0.01;
+float alpha = 20;
+float GetTessLevel(float dist1, float dist2){
+	float avgDist = (dist1 + dist2)/2;
+	return clamp(ceil(round(exp(lambda*avgDist)*alpha)), 1, 8);
+
+	
+}
 void CalcPositions();
 vec3 ProjectToPlane(vec3 Point, vec3 PlanePoint, vec3 PlaneNormal) ;
 vec3 getNormal(vec3 a, vec3 b, vec3 c) ;
@@ -114,7 +122,7 @@ vec3 ProjectToPlane(vec3 Point, vec3 PlanePoint, vec3 PlaneNormal)
 }
 
 
- float GetTessLevel(float Distance0, float Distance1)
+/* float GetTessLevel(float Distance0, float Distance1)
  {
     float AvgDistance = (Distance0 + Distance1) / 2.0;
 	 if (AvgDistance <= 2.0) {
@@ -131,5 +139,5 @@ vec3 ProjectToPlane(vec3 Point, vec3 PlanePoint, vec3 PlaneNormal)
     else{
         return 1.0;
     }
-}
+}*/
 

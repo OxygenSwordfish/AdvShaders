@@ -134,6 +134,7 @@
     <ClCompile Include="src\Terrain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Shaders\phongDirFrag.fs" />
     <None Include="..\Shaders\plainFrag.fs" />
     <None Include="..\Shaders\plainVert.vs" />
     <None Include="..\Shaders\PNtessC.tcs" />

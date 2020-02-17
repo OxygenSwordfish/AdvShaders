@@ -74,7 +74,7 @@ int main()
 	glCullFace(GL_BACK);
 
 	// simple vertex and fragment shader - add your own tess and geo shader
-	Shader shader("..\\shaders\\PNVert.vs", "..\\shaders\\tessFrag.fs", "..\\shaders\\tessGeo.gs", "..\\shaders\\PNtessC.tcs", "..\\shaders\\PNtessE.tes");
+	Shader shader("..\\shaders\\PNVert.vs", "..\\shaders\\phongDirFrag.fs", "..\\shaders\\tessGeo.gs", "..\\shaders\\PNtessC.tcs", "..\\shaders\\PNtessE.tes");
 
 
 	//Terrain Constructor ; number of grids in width, number of grids in height, gridSize
@@ -116,7 +116,7 @@ int main()
 		shader.setVec3("dirLight.diffuse", 0.55f, 0.55f, 0.55f);
 		shader.setVec3("dirLight.specular", 0.6f, 0.6f, 0.6f);
 		//material properties
-		shader.setVec3("mat.ambient", 0.3, 0.387, 0.317);
+		shader.setVec3("mat.ambient", 0.647, 0.137, 0.137);
 		shader.setVec3("mat.diffuse", 0.396, 0.741, 0.691);
 		shader.setVec3("mat.specular", 0.297f, 0.308f, 0.306f);
 		shader.setFloat("mat.shininess", 0.9f);

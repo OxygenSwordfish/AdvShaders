@@ -60,5 +60,6 @@
     <None Include="..\Shaders\PNtessC.tcs" />
     <None Include="..\Shaders\PNtessE.tes" />
     <None Include="..\Shaders\PNvert.vs" />
+    <None Include="..\Shaders\phongDirFrag.fs" />
   </ItemGroup>
 </Project>
