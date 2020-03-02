@@ -44,6 +44,7 @@ unsigned int VBO, VAO;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+float heightCo = 10.f;
 
 int main()
 {
@@ -74,8 +75,11 @@ int main()
 	glCullFace(GL_BACK);
 
 	// simple vertex and fragment shader - add your own tess and geo shader
-	Shader shader("..\\shaders\\PNVert.vs", "..\\shaders\\phongDirFrag.fs", "..\\shaders\\tessGeo.gs", "..\\shaders\\PNtessC.tcs", "..\\shaders\\PNtessE.tes");
-
+	//Shader shader("..\\shaders\\PNVert.vs", "..\\shaders\\phongDirFrag.fs", "..\\shaders\\tessGeo.gs", "..\\shaders\\PNtessC.tcs", "..\\shaders\\PNtessE.tes");
+	Shader shader("..\\shaders\\heightV.vs", "..\\shaders\\heightF.fs", "..\\shaders\\heightG.gs", "..\\shaders\\heightTC.tcs", "..\\shaders\\heightTE.tes");
+	unsigned int heightMap = loadTexture("..\\resources\\hm2.jpg");
+	shader.setInt("heightMap", 0);
+	
 
 	//Terrain Constructor ; number of grids in width, number of grids in height, gridSize
 	Terrain terrain(50, 50,10);
@@ -109,7 +113,7 @@ int main()
 		shader.setMat4("model", model);
 		shader.setVec3("viewPos", camera.Position);
 		shader.setVec3("eyePos", camera.Position);
-
+		
 		//light properties
 		shader.setVec3("dirLight.direction", dirLightPos);
 		shader.setVec3("dirLight.ambient", 0.5f, 0.5f, 0.5f);
@@ -120,7 +124,10 @@ int main()
 		shader.setVec3("mat.diffuse", 0.396, 0.741, 0.691);
 		shader.setVec3("mat.specular", 0.297f, 0.308f, 0.306f);
 		shader.setFloat("mat.shininess", 0.9f);
-
+		
+		shader.setFloat("heightCo", heightCo);
+		glBindTexture(GL_TEXTURE_2D, heightMap);
+		glActiveTexture(GL_TEXTURE0);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDrawArrays(GL_PATCHES, 0, vertices.size() / 3);
 		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) 
@@ -155,6 +162,10 @@ void processInput(GLFWwindow *window)
 		camera.ProcessKeyboard(UP, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 		camera.ProcessKeyboard(DOWN, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		heightCo += 1.f;
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		heightCo -= 1.f;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

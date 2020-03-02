@@ -134,6 +134,11 @@
     <ClCompile Include="src\Terrain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Shaders\heightF.fs" />
+    <None Include="..\Shaders\heightG.gs" />
+    <None Include="..\Shaders\heightTC.tcs" />
+    <None Include="..\Shaders\heightTE.tes" />
+    <None Include="..\Shaders\heightV.vs" />
     <None Include="..\Shaders\phongDirFrag.fs" />
     <None Include="..\Shaders\plainFrag.fs" />
     <None Include="..\Shaders\plainVert.vs" />

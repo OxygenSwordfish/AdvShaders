@@ -61,5 +61,10 @@
     <None Include="..\Shaders\PNtessE.tes" />
     <None Include="..\Shaders\PNvert.vs" />
     <None Include="..\Shaders\phongDirFrag.fs" />
+    <None Include="..\Shaders\heightF.fs" />
+    <None Include="..\Shaders\heightG.gs" />
+    <None Include="..\Shaders\heightTC.tcs" />
+    <None Include="..\Shaders\heightTE.tes" />
+    <None Include="..\Shaders\heightV.vs" />
   </ItemGroup>
 </Project>
