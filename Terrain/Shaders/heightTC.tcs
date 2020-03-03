@@ -13,11 +13,11 @@ layout (vertices =3) out;
 uniform vec3 eyePos;
 
 in vec3 posVS[] ;
-//in vec3 normVS[] ;
+in vec3 normVS[] ;
 in vec2 texCoords[];
 
 out vec3 posTC[] ;
-//out vec3 normTC[] ;
+out vec3 normTC[] ;
 out vec2 texCoordsTC[];
 
 float lambda = -0.01;
@@ -53,8 +53,8 @@ void main()
    }
 
    // pass through position and normal information
-   posTC[gl_InvocationID]  = posVS[gl_InvocationID] ;
-  // normTC[gl_InvocationID] = normVS[gl_InvocationID] ;
+  posTC[gl_InvocationID]  = posVS[gl_InvocationID] ;
+  normTC[gl_InvocationID] = normVS[gl_InvocationID] ;
   texCoordsTC[gl_InvocationID] = texCoords[gl_InvocationID];
 }
 

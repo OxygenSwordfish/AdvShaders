@@ -17,7 +17,7 @@ void main()
    {
       gl_Position = gl_in[i].gl_Position ;
       gWorldPos_FS_in = posES[i] ;
-     // gNormals = getNormal() ;    
+      gNormals = getNormal() ;    
       EmitVertex() ;
   }
      EndPrimitive() ;
