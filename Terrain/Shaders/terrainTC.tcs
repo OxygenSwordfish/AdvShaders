@@ -1,0 +1,49 @@
+#version 450 core
+layout (vertices =3) out;
+
+
+
+uniform vec3 eyePos;
+
+in vec3 posVS[] ;
+in vec3 normVS[] ;
+in vec2 texCoords[];
+
+out vec3 posTC[] ;
+out vec3 normTC[] ;
+out vec2 texCoordsTC[];
+
+float lambda = -0.01;
+float alpha = 40;
+float GetTessLevel(float dist1, float dist2){
+	float avgDist = (dist1 + dist2)/2;
+	return clamp(ceil(round(exp(lambda*avgDist)*alpha)), 1, 8);
+
+	
+}
+
+void main()
+{
+  
+
+  
+   float eyeToVertexDist0 = distance(eyePos, posVS[0]);
+   float eyeToVertexDist1 = distance(eyePos, posVS[1]);
+   float eyeToVertexDist2 = distance(eyePos, posVS[2]);
+
+   if (gl_InvocationID==0)
+   {
+		   // Calculate the tessellation levels
+          gl_TessLevelOuter[0] = GetTessLevel(eyeToVertexDist1, eyeToVertexDist2) ; 
+          gl_TessLevelOuter[1] = GetTessLevel(eyeToVertexDist2, eyeToVertexDist0) ; 
+          gl_TessLevelOuter[2] = GetTessLevel(eyeToVertexDist0, eyeToVertexDist1) ;
+          gl_TessLevelInner[0] = gl_TessLevelOuter[2]; 
+
+   }
+
+   // pass through position and normal information
+  posTC[gl_InvocationID]  = posVS[gl_InvocationID] ;
+  normTC[gl_InvocationID] = normVS[gl_InvocationID] ;
+  texCoordsTC[gl_InvocationID] = texCoords[gl_InvocationID];
+}
+

@@ -134,22 +134,17 @@
     <ClCompile Include="src\Terrain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Shaders\heightF.fs" />
-    <None Include="..\Shaders\heightG.gs" />
-    <None Include="..\Shaders\heightTC.tcs" />
-    <None Include="..\Shaders\heightTE.tes" />
-    <None Include="..\Shaders\heightV.vs" />
-    <None Include="..\Shaders\phongDirFrag.fs" />
-    <None Include="..\Shaders\plainFrag.fs" />
-    <None Include="..\Shaders\plainVert.vs" />
-    <None Include="..\Shaders\PNtessC.tcs" />
-    <None Include="..\Shaders\PNtessE.tes" />
-    <None Include="..\Shaders\PNvert.vs" />
-    <None Include="..\Shaders\tessControlShader.tcs" />
-    <None Include="..\Shaders\tessEvaluationShader.tes" />
-    <None Include="..\Shaders\tessFrag.fs" />
-    <None Include="..\Shaders\tessGeo.gs" />
-    <None Include="..\Shaders\tessVert.vs" />
+    <None Include="..\Shaders\desatF.fs" />
+    <None Include="..\Shaders\glitch.fs" />
+    <None Include="..\Shaders\invertF.fs" />
+    <None Include="..\Shaders\nightVis.fs" />
+    <None Include="..\Shaders\postProcF.fs" />
+    <None Include="..\Shaders\postProcV.vs" />
+    <None Include="..\Shaders\terrainF.fs" />
+    <None Include="..\Shaders\terrainG.gs" />
+    <None Include="..\Shaders\terrainTC.tcs" />
+    <None Include="..\Shaders\terrainTE.tes" />
+    <None Include="..\Shaders\terrainV.vs" />
     <None Include="assimp-vc140-mt.dll" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

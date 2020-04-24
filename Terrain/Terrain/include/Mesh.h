@@ -136,5 +136,7 @@ private:
 
 		glBindVertexArray(0);
 	}
+
+	
 };
 #endif#pragma once
