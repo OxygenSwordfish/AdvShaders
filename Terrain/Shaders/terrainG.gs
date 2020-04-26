@@ -9,11 +9,14 @@ in float heightTE[] ;
 in float heightCoTE[];
 in float visibility[];
 
+
 out vec3 gNormals ;
 out vec3 gWorldPos_FS_in ;
 out float heightG;
 out float heightCoG;
 out float visibilityG;
+
+
 void main()
 {
   
@@ -25,6 +28,7 @@ void main()
 	  heightG = heightTE[i];
 	  heightCoG = heightCoTE[i];
 	  visibilityG = visibility[i];
+	  
       EmitVertex() ;
   }
      EndPrimitive() ;

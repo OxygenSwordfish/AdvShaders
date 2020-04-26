@@ -61,5 +61,7 @@
     <None Include="..\Shaders\invertF.fs" />
     <None Include="..\Shaders\nightVis.fs" />
     <None Include="..\Shaders\glitch.fs" />
+    <None Include="..\Shaders\shadowsF.fs" />
+    <None Include="..\Shaders\shadowsV.vs" />
   </ItemGroup>
 </Project>

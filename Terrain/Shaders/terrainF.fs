@@ -8,7 +8,7 @@ in float heightG;
 in float heightCoG;
 
 in float visibilityG;
-
+in vec2 texCoordsG;
 
 
 struct Material {
@@ -33,9 +33,18 @@ uniform vec3 viewPos ;
 uniform vec4 sky;
 vec3 colour;
 
+
+uniform mat4 lightSpaceMatrix;
+layout(binding = 1) uniform sampler2D shadowMap;
+
+float gamma = 2.2;
+float calcShadows(vec4 fragPosLightSpace);
+
 void main()
 {   
-	vec4 low = vec4(0.7,0.4,0.0,0.0); //brown
+	vec4 fragPosLightSpace = lightSpaceMatrix * vec4(gWorldPos_FS_in,1.0);
+
+	vec4 low = vec4(0.4,0.1,0.0,0.0); //brown
 	vec4 mid = vec4(0.3,0.4,0.15,0.0); //green
 	vec4 high = vec4(0.5,0.4,0.5,0.0); //grey
 
@@ -45,12 +54,15 @@ void main()
 	
 	
 	
-	if (height > 0.6)
+	if (height > 0.5)
 		colour = vec3(mix(mid,high, smoothstep(0.5,0.9,height)).rgb);
-	else if (height < 0.4)
-		colour =  vec3(mix(low,mid, smoothstep(0.1,0.5,height)).rgb);
+	else if (height < 0.2)
+		colour =  vec3(mix(low,mid, smoothstep(0.0,0.2,height)).rgb);
 	else 
 		colour = mid.rgb;
+
+	
+
     vec3 viewDir = normalize(viewPos - gWorldPos_FS_in);
 	vec3 norm = normalize(gNormals) ;
 	vec3 ambient = dirLight.ambient * mat.ambient;     
@@ -64,8 +76,31 @@ void main()
    
     vec3 diffuse  = dirLight.diffuse * (diff * mat.diffuse);
     vec3 specular = dirLight.specular * (spec * mat.specular);
-    FragColor = vec4((ambient + diffuse + specular)* colour,1.0f);
-	FragColor = mix(vec4(sky), FragColor, visibilityG);
+
+	float shadow = calcShadows(fragPosLightSpace);
+   FragColor = vec4(ambient + (1.0-shadow)*(diffuse + specular)* colour,1.0f);
+	//FragColor = vec4((ambient + diffuse + specular)* colour, 1.0f);
+	//FragColor = mix(vec4(sky), FragColor, visibilityG);
+
+	//Gamma correction
+	//FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
 	
 }
 
+float calcShadows(vec4 fragPosLightSpace)
+{
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float closestDepth = texture(shadowMap, projCoords.xy).r;
+
+	float currentDepth = projCoords.z;
+
+	float shadow = 0;
+
+	if(currentDepth > closestDepth)
+		shadow = 1;
+
+	return shadow;
+}

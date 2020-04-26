@@ -140,6 +140,8 @@
     <None Include="..\Shaders\nightVis.fs" />
     <None Include="..\Shaders\postProcF.fs" />
     <None Include="..\Shaders\postProcV.vs" />
+    <None Include="..\Shaders\shadowsF.fs" />
+    <None Include="..\Shaders\shadowsV.vs" />
     <None Include="..\Shaders\terrainF.fs" />
     <None Include="..\Shaders\terrainG.gs" />
     <None Include="..\Shaders\terrainTC.tcs" />

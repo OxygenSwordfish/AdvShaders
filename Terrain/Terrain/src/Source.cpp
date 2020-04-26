@@ -35,13 +35,13 @@ void setFBOdepth();
 void renderQuad();
 
 // camera
-Camera camera(glm::vec3(260,50,300));
+Camera camera(glm::vec3(260, 50, 300));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 //arrays
-unsigned int VBO, VAO, FBO, depthFBO, quadVAO, quadVBO;
+unsigned int VBO, VAO;
 unsigned int textureColourBuffer;
 unsigned int textureDepthBuffer;
 
@@ -52,10 +52,19 @@ float lastFrame = 0.0f;
 
 glm::vec4 sky = glm::vec4(0.2, 0.4, 0.8, 1.0);
 
+
+//Frame buffers
+unsigned int FBO, depthFBO, quadVAO, quadVBO;
 //Quickly debug depth without having to change multiple lines
 bool depthDebug = false;
-
+//Control post process filters
 int postProcs = 0;
+
+//Shadows
+unsigned int shadowFBO;
+unsigned int shadowMap;
+unsigned int SHADOW_WIDTH, SHADOW_HEIGHT = 512;
+void setShadowFBO();
 
 int main()
 {
@@ -81,7 +90,7 @@ int main()
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
-	
+	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
@@ -90,6 +99,10 @@ int main()
 	Shader terrainShader("..\\shaders\\terrainV.vs", "..\\shaders\\terrainF.fs", "..\\shaders\\terrainG.gs", "..\\shaders\\terrainTC.tcs", "..\\shaders\\terrainTE.tes");
 	unsigned int heightMap = loadTexture("..\\resources\\hm1.jpg");
 	terrainShader.setInt("heightMap", 0);
+	
+	unsigned int shadowLoc = glGetUniformLocation(terrainShader.ID, "shadowMap");
+	glUniform1i(shadowLoc, 1);
+	
 	Shader postProcessor("..\\shaders\\postProcV.vs", "..\\shaders\\postProcF.fs");
 	postProcessor.setBool("depthDebug", depthDebug);
 
@@ -99,16 +112,16 @@ int main()
 	unsigned int overlayNoise = loadTexture("..\\resources\\overlayNoise.png");
 	nightVision.setInt("overlayNoise", 0);
 	Shader glitch("..\\shaders\\postProcV.vs", "..\\shaders\\glitch.fs");
-	
-	
+
+	Shader shadows("..\\shaders\\shadowsV.vs", "..\\shaders\\shadowsF.fs");
 
 	//Terrain Constructor ; number of grids in width, number of grids in height, gridSize
-	Terrain terrain(50, 50,10);
+	Terrain terrain(50, 50, 10);
 	std::vector<float> vertices = terrain.getVertices();
 	setVAO(vertices);
-	setFBOdepth();
-	setFBOcolour();
-	
+	//setFBOdepth();
+	//setFBOcolour();
+	setShadowFBO();
 
 
 	while (!glfwWindowShouldClose(window))
@@ -119,21 +132,27 @@ int main()
 		lastFrame = currentFrame;
 
 		processInput(window);
-		
-	
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1200.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 model = glm::mat4(1.0f);
 
+		glm::mat4 lightProjection, lightView;
+		glm::mat4 lightSpaceMatrix;
+		float near_plane = 1.0f, far_plane = 7.5f;
+
+
 		terrainShader.use();
 		terrainShader.setMat4("projection", projection);
 		terrainShader.setMat4("view", view);
-		
+
 
 		terrainShader.setMat4("model", model);
 		terrainShader.setVec3("viewPos", camera.Position);
 		terrainShader.setVec3("eyePos", camera.Position);
-		
+
 		//light properties
 		terrainShader.setVec3("dirLight.direction", dirLightPos);
 		terrainShader.setVec3("dirLight.ambient", 0.5f, 0.5f, 0.5f);
@@ -144,33 +163,63 @@ int main()
 		terrainShader.setVec3("mat.diffuse", 0.396, 0.741, 0.691);
 		terrainShader.setVec3("mat.specular", 0.297f, 0.308f, 0.306f);
 		terrainShader.setFloat("mat.shininess", 0.9f);
-		
+
 
 		terrainShader.setVec4("sky", sky);
 
+		lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+		lightView = glm::lookAt(dirLightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+		lightSpaceMatrix = lightProjection * lightView;
+		terrainShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+		
+		glClearColor(sky.r, sky.g, sky.b, sky.a);
+		
 
-		glBindTexture(GL_TEXTURE_2D, heightMap);
-		glActiveTexture(GL_TEXTURE0);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		
+		shadows.use();
+		shadows.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
 
 		
+		//First pass - generate shadows
+		//glEnable(GL_DEPTH_TEST);
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		//terrainShader.use();
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, heightMap);
 		
-		//Framebuffer first pass
-		glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+		shadows.use();
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 3);
+
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		//Second pass - render shadows to screen
+
+
+
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		terrainShader.use();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, heightMap);
+		
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, shadowMap);
 		glEnable(GL_DEPTH_TEST);
-
+		//setVAO(vertices);
 		glClearColor(sky.r, sky.g, sky.b, sky.a);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+			
 		glBindVertexArray(VAO);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glDrawArrays(GL_PATCHES, 0, vertices.size() / 3);
 
-		
+
 		//Framebuffer second pass
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	/*	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_DEPTH_TEST);
 		if (!depthDebug)
 			switch (postProcs) {
@@ -193,15 +242,19 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
 		glBindTexture(GL_TEXTURE_2D, textureColourBuffer);
+		
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		renderQuad();
+		*/
 
-		if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		
-		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) 
-		  camera.printCameraCoords();
-		
+		glBindVertexArray(VAO);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDrawArrays(GL_PATCHES, 0, vertices.size() / 3);
+
+		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+			camera.printCameraCoords();
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -241,7 +294,7 @@ void processInput(GLFWwindow *window)
 		postProcs = 3;
 	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
 		postProcs = 4;
-	
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -308,14 +361,14 @@ unsigned int loadTexture(char const * path)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		stbi_image_free(data);
-		std::cout << "Loaded texture at path: " << path << " width " << width << " id " << textureID <<  std::endl;
+		std::cout << "Loaded texture at path: " << path << " width " << width << " id " << textureID << std::endl;
 
 	}
 	else
 	{
 		std::cout << "Texture failed to load at path: " << path << std::endl;
 		stbi_image_free(data);
-		
+
 	}
 
 	return textureID;
@@ -326,7 +379,7 @@ void setVAO(vector <float> vertices) {
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glBindVertexArray(VAO);		
+	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, (vertices.size() * sizeof(GLfloat)), vertices.data(), GL_STATIC_DRAW);
 
@@ -340,7 +393,7 @@ void setVAO(vector <float> vertices) {
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	
+
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -384,7 +437,29 @@ void setFBOdepth()
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
+
+}
+
+void setShadowFBO()
+{
+	glGenFramebuffers(1, &shadowFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+
+	glGenTextures(1, &shadowMap);
+	glBindTexture(GL_TEXTURE_2D, shadowMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 void renderQuad()
 {
@@ -411,7 +486,3 @@ void renderQuad()
 	glBindVertexArray(0);
 }
 
-void renderScene(const Shader &shader)
-{
-
-}

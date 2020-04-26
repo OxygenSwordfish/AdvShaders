@@ -28,7 +28,7 @@ in vec2 texCoordsTC[];
 
 out vec3 normES ;
 out vec3 posES ;
-out vec2 texCoordsTE;
+
 out float heightTE;
 out float heightCoTE;
 
@@ -36,7 +36,8 @@ out float visibility;
 
 void main()
 {
-    
+    vec2 texCoordsTE = interpolate2D(texCoordsTC[0], texCoordsTC[1], texCoordsTC[2]);
+
 	float right = (textureOffset(heightMap, texCoordsTE, ivec2(1,0)).r)*heightCo;
 	float left = (textureOffset(heightMap, texCoordsTE, ivec2(-1,0)).r)*heightCo;
 	float up = (textureOffset(heightMap, texCoordsTE, ivec2(0,1)).r)*heightCo;
@@ -50,7 +51,7 @@ void main()
 	normES = normalize(normals);
    
 	posES = interpolate3D(posTC[0], posTC[1], posTC[2]) ;
-	vec2 texCoordsTE = interpolate2D(texCoordsTC[0], texCoordsTC[1], texCoordsTC[2]);
+	
 
    // transform vertex to clip space  - NOTE: WE NEED TO DO IT HERE NOW and not in vertex shader
 
