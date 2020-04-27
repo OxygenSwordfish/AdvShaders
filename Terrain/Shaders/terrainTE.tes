@@ -7,7 +7,7 @@ layout(triangles, fractional_even_spacing, ccw) in;
 vec2 interpolate2D(vec2 v0, vec2 v1, vec2 v2) ;
 vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2) ;
 
-float density = 0.005;
+float density = 0.003;
 float G = 2;
 
 // unifrom matrices to perform transformations
@@ -15,9 +15,9 @@ float G = 2;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform sampler2D heightMap;
+//uniform sampler2D heightMap;
 
-float heightCo = 50;
+float heightCo = 75;
 
 uniform vec3 eyePos;
 
@@ -32,40 +32,86 @@ out vec3 posES ;
 out float heightTE;
 out float heightCoTE;
 
-out float visibility;
+out float visibilityTE;
+out vec2 texCoordsTE;
+
+//Terrain generation with simplex noise
+uniform float seed;
+
+float hash(float n) {
+    return fract(sin(n) * (seed + 753.5453123));
+}
+
+float sNoise(vec3 x)
+{
+	vec3 p = floor(x);
+	vec3 f = fract(x);
+	f = f * f * (3.0f - (2.0f * f));
+
+	float n = p.x + p.y * 157.0f + 113.0f * p.z;
+	return mix(mix(mix(hash(n + 0.0f), hash(n + 1.0f), f.x),
+		mix(hash(n + 157.0f), hash(n + 158.0f), f.x), f.y),
+		mix(mix(hash(n + 113.0f), hash(n + 114.0f), f.x),
+			mix(hash(n + 270.0f), hash(n + 271.0f), f.x), f.y), f.z);
+}
+
+float cycleOctaves(vec3 pos, int numOct)
+{
+	float total = 0.0f;
+	float maxAmplitude = 0.0f;
+
+	float amplitude = 100.0f;
+	float frequency = 0.005;
+
+	for (int i = 0; i < numOct; i++)
+	{
+		double x = pos.x * frequency;
+		double z = pos.z * frequency;
+		total += sNoise(vec3(x,0.1f,z))*amplitude;
+		maxAmplitude += amplitude;
+		frequency *= 2;
+		amplitude /= 2;
+	}
+
+	return (total/maxAmplitude);
+}
+
 
 void main()
 {
+	posES = interpolate3D(posTC[0], posTC[1], posTC[2]) ;
     vec2 texCoordsTE = interpolate2D(texCoordsTC[0], texCoordsTC[1], texCoordsTC[2]);
-
-	float right = (textureOffset(heightMap, texCoordsTE, ivec2(1,0)).r)*heightCo;
-	float left = (textureOffset(heightMap, texCoordsTE, ivec2(-1,0)).r)*heightCo;
-	float up = (textureOffset(heightMap, texCoordsTE, ivec2(0,1)).r)*heightCo;
-	float down = (textureOffset(heightMap, texCoordsTE, ivec2(0.-1)).r)*heightCo;
-
-
-
 	normES = interpolate3D(normTC[0], normTC[1], normTC[2]) ;
+
+
+	float right = cycleOctaves(vec3(posES.x + 1, posES.y, posES.z), 8)* heightCo;
+	float left = cycleOctaves(vec3(posES.x - 1, posES.y, posES.z), 8)* heightCo;
+	float up = cycleOctaves(vec3(posES.x, posES.y, posES.z+1), 8)* heightCo;
+	float down = cycleOctaves(vec3(posES.x, posES.y, posES.z-1), 8)* heightCo;
+
+
+
 
 	vec3 normals = vec3 ((left-right),2.0,(up-down));
 	normES = normalize(normals);
    
-	posES = interpolate3D(posTC[0], posTC[1], posTC[2]) ;
 	
 
    // transform vertex to clip space  - NOTE: WE NEED TO DO IT HERE NOW and not in vertex shader
 
-  float height = (texture(heightMap, texCoordsTE).x);
-  posES.y = height * heightCo;
-  heightTE = posES.y;
+ 
   heightCoTE = heightCo;
-  gl_Position = projection * view * model * vec4(posES, 1.0);
 
 
+  posES.y = cycleOctaves(posES, 15)* heightCo;	
+  heightTE = posES.y;
   //Fog
   float distToCam = distance(eyePos, posES);
-  visibility = exp(-pow((distToCam*density),G));
-  visibility = clamp(visibility, 0,1);
+  visibilityTE = exp(-pow((distToCam*density),G));
+  visibilityTE = clamp(visibilityTE, 0,1);
+
+
+  gl_Position = projection * view * model * vec4(posES, 1.0);
 } 
 
 
@@ -79,4 +125,5 @@ vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2)
 {
    	return vec3(gl_TessCoord.x) * v0 + vec3(gl_TessCoord.y) * v1 + vec3(gl_TessCoord.z) * v2;
 }
+
 

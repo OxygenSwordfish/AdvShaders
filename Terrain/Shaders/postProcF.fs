@@ -6,7 +6,7 @@ float LineariseDepth(float depth);
 
 out vec4 fragColor;
 const float near_plane = 1;
-const float far_plane = 1000;
+const float far_plane = 250;
 
 uniform bool depthDebug;
 

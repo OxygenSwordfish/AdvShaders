@@ -7,7 +7,7 @@ Terrain::Terrain(int widthIn, int heightIn, int stepSizeIn)
 	width = widthIn;
 	height = heightIn;
 	stepSize = stepSizeIn;
-	makeVertices(&vertices);
+	//makeVertices(&vertices, 0.0f, 0.0f);
 
 }
 
@@ -15,7 +15,7 @@ Terrain::Terrain() {
 	width = 50;
 	height = 50;
 	stepSize = 10;
-	makeVertices(&vertices);
+	makeVertices(&vertices, 0.0f, 0.0f); //Modified for infinite generation, defaults to 0,0 coordinates
 
 }
 
@@ -24,7 +24,7 @@ std::vector<float> Terrain::getVertices() {
 	return vertices;
 }
 
-void Terrain::makeVertices(std::vector<float> *vertices) {
+void Terrain::makeVertices(std::vector<float> *vertices, float xPos, float yPos) {
 	/* triangle a b c
 		   b
 		   | \
@@ -51,11 +51,12 @@ void Terrain::makeVertices(std::vector<float> *vertices) {
 		 each vertex a, b,c, etc. will have 5 data:
 		 x y z u v
 		  */
+	vertices->clear();
 
 	for (int y = 0; y < height - 1; y++) {
-		float  offSetY = y * stepSize;
+		float  offSetY = yPos + (y * stepSize);
 		for (int x = 0; x < width - 1; x++) {
-			float offSetX = x * stepSize;
+			float offSetX = xPos + (x * stepSize);
 			makeVertex(offSetX, offSetY, vertices);  // a
 			makeVertex(offSetX, offSetY + stepSize, vertices);  // b
 			makeVertex(offSetX + stepSize, offSetY, vertices);   // c
@@ -64,6 +65,7 @@ void Terrain::makeVertices(std::vector<float> *vertices) {
 			makeVertex(offSetX + stepSize, offSetY + stepSize, vertices);  //f
 		}
 	}
+
 }
 
 void Terrain::makeVertex(int x, int y, std::vector<float> *vertices) {
@@ -77,5 +79,19 @@ void Terrain::makeVertex(int x, int y, std::vector<float> *vertices) {
 	vertices->push_back((float)x / (width*stepSize));
 	vertices->push_back((float)y / (height*stepSize));
 
+
+}
+
+bool Terrain::bounds(float x, float z, float dist)
+{
+	float posX = vertices.at(vertices.size() / 2); //X position
+	float posZ = vertices.at((vertices.size() / 2)+ 2); //Z position
+
+	if ((x > (posX + dist)) || (x < (posX - dist)))
+		return true;
+	if ((z > (posZ + dist)) || (z < (posZ - dist)))
+		return true;
+
+	return false;
 
 }

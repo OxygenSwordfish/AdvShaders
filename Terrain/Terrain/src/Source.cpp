@@ -16,24 +16,26 @@
 #include<string>
 #include <iostream>
 #include <numeric>
-
+#include <time.h>
 
 // settings
 const unsigned int SCR_WIDTH = 1200;
 const unsigned int SCR_HEIGHT = 900;
-glm::vec3 dirLightPos(0.1f, 0.6f, 0.2f);
+glm::vec3 dirLightPos(20.f, 0.6f, 0.2f);
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(char const * path);
-//unsigned int loadTexture2(char const * path);
+
+
+
 void setVAO(vector <float> vertices);
 void setFBOcolour();
 void setFBOdepth();
 void renderQuad();
-
+void setShadowBuffer();
 // camera
 Camera camera(glm::vec3(260, 50, 300));
 float lastX = SCR_WIDTH / 2.0f;
@@ -41,10 +43,14 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 //arrays
-unsigned int VBO, VAO;
+unsigned int VBO, VAO, FBO, depthFBO, quadVAO, quadVBO, shadowMapFBO;
 unsigned int textureColourBuffer;
 unsigned int textureDepthBuffer;
+unsigned int shadowMap;
 
+void renderTerrain(vector<float> vertices);
+//Update buffer object as new terrain generates
+void updateBuffer(vector<float> vertices);
 
 // timing
 float deltaTime = 0.0f;
@@ -52,19 +58,19 @@ float lastFrame = 0.0f;
 
 glm::vec4 sky = glm::vec4(0.2, 0.4, 0.8, 1.0);
 
-
-//Frame buffers
-unsigned int FBO, depthFBO, quadVAO, quadVBO;
 //Quickly debug depth without having to change multiple lines
 bool depthDebug = false;
-//Control post process filters
+
 int postProcs = 0;
 
-//Shadows
-unsigned int shadowFBO;
-unsigned int shadowMap;
-unsigned int SHADOW_WIDTH, SHADOW_HEIGHT = 512;
-void setShadowFBO();
+float terrSeed = 0.0f;
+
+const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+//Toggles for effects
+bool rPress, gPress, tPress, fPress, yPress = false;
+
+bool fogEnable, gammaCor, shadowEnable, showDepth = false;
 
 int main()
 {
@@ -90,19 +96,15 @@ int main()
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
-	glEnable(GL_DEPTH_TEST);
+
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
 	// simple vertex and fragment shader - add your own tess and geo shader
 	//Shader shader("..\\shaders\\PNVert.vs", "..\\shaders\\phongDirFrag.fs", "..\\shaders\\tessGeo.gs", "..\\shaders\\PNtessC.tcs", "..\\shaders\\PNtessE.tes");
-	Shader terrainShader("..\\shaders\\terrainV.vs", "..\\shaders\\terrainF.fs", "..\\shaders\\terrainG.gs", "..\\shaders\\terrainTC.tcs", "..\\shaders\\terrainTE.tes");
-	unsigned int heightMap = loadTexture("..\\resources\\hm1.jpg");
-	terrainShader.setInt("heightMap", 0);
-	
-	unsigned int shadowLoc = glGetUniformLocation(terrainShader.ID, "shadowMap");
-	glUniform1i(shadowLoc, 1);
-	
+	Shader terrainShader("..\\shaders\\terrainV.vs", "..\\shaders\\terrainF.fs", nullptr, "..\\shaders\\terrainTC.tcs", "..\\shaders\\terrainTE.tes");
+	//unsigned int heightMap = loadTexture("..\\resources\\hm1.jpg");
+	//terrainShader.setInt("heightMap", 0);
 	Shader postProcessor("..\\shaders\\postProcV.vs", "..\\shaders\\postProcF.fs");
 	postProcessor.setBool("depthDebug", depthDebug);
 
@@ -110,19 +112,29 @@ int main()
 	Shader invert("..\\shaders\\postProcV.vs", "..\\shaders\\invertF.fs");
 	Shader nightVision("..\\shaders\\postProcV.vs", "..\\shaders\\nightVis.fs");
 	unsigned int overlayNoise = loadTexture("..\\resources\\overlayNoise.png");
-	nightVision.setInt("overlayNoise", 0);
+	nightVision.setInt("overlayNoise", 1);
+
+	
 	Shader glitch("..\\shaders\\postProcV.vs", "..\\shaders\\glitch.fs");
 
 	Shader shadows("..\\shaders\\shadowsV.vs", "..\\shaders\\shadowsF.fs");
 
 	//Terrain Constructor ; number of grids in width, number of grids in height, gridSize
-	Terrain terrain(50, 50, 10);
+	Terrain terrain;
 	std::vector<float> vertices = terrain.getVertices();
 	setVAO(vertices);
-	//setFBOdepth();
-	//setFBOcolour();
-	setShadowFBO();
+	setFBOdepth();
+	setFBOcolour();
+	setShadowBuffer();
+	
+	srand(time(NULL));
+	terrSeed = rand();
 
+	terrainShader.use();
+	terrainShader.setFloat("seed", terrSeed);
+	terrainShader.setInt("shadowMap", 0);
+	
+	
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -133,16 +145,15 @@ int main()
 
 		processInput(window);
 
+		glClearColor(sky.r, sky.g, sky.b, sky.a);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1200.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 model = glm::mat4(1.0f);
-
-		glm::mat4 lightProjection, lightView;
-		glm::mat4 lightSpaceMatrix;
-		float near_plane = 1.0f, far_plane = 7.5f;
-
+		
+		glm::mat4 lightProjection, lightView, lightSpaceMatrix;
+		float nearPlane = 1.0f, farPlane = 1000.f;
 
 		terrainShader.use();
 		terrainShader.setMat4("projection", projection);
@@ -164,96 +175,137 @@ int main()
 		terrainShader.setVec3("mat.specular", 0.297f, 0.308f, 0.306f);
 		terrainShader.setFloat("mat.shininess", 0.9f);
 
+		lightProjection = glm::ortho(-250.0f, 250.0f, -250.0f, 250.0f, nearPlane, farPlane);
+		lightView = glm::lookAt(dirLightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+		lightSpaceMatrix = lightProjection * lightView;
+
+		terrainShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
 		terrainShader.setVec4("sky", sky);
 
-		lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-		lightView = glm::lookAt(dirLightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-		lightSpaceMatrix = lightProjection * lightView;
-		terrainShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-		
-		glClearColor(sky.r, sky.g, sky.b, sky.a);
-		
+		terrainShader.setBool("shadowEnable", shadowEnable);
+		terrainShader.setBool("fogEnable", fogEnable);
+		terrainShader.setBool("gammaCor", gammaCor);
 
-		
 		shadows.use();
-		shadows.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+		shadows.setMat4("lightSpaceMatrix",lightSpaceMatrix);
 
-
-		
-		//First pass - generate shadows
-		//glEnable(GL_DEPTH_TEST);
-		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-		glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-		glClear(GL_DEPTH_BUFFER_BIT);
-
-		//terrainShader.use();
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, heightMap);
-		
-		shadows.use();
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 3);
-
-		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-		//Second pass - render shadows to screen
-
-
-
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		terrainShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, heightMap);
-		
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, shadowMap);
-		glEnable(GL_DEPTH_TEST);
-		//setVAO(vertices);
-		glClearColor(sky.r, sky.g, sky.b, sky.a);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		postProcessor.use();
+		postProcessor.setBool("depthDebug", showDepth);
+		if(showDepth)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER,depthFBO);
+			terrainShader.use();
+			glEnable(GL_DEPTH_TEST);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			renderTerrain(vertices);
 			
-		glBindVertexArray(VAO);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glDrawArrays(GL_PATCHES, 0, vertices.size() / 3);
+			
+			glBindFramebuffer(GL_FRAMEBUFFER,0);
+			glDisable(GL_DEPTH_TEST);
+			postProcessor.use();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
+			renderQuad();
+		}
+		else
+		{
+			postProcessor.setBool("depthDebug", false);
+			//update generate new terrain if camera moves enough. Terrain origin not updating but rest works
+			/*if (terrain.bounds(camera.Position.x, camera.Position.z, 100.f) == true)
+			{
+				terrSeed = rand();
+				terrainShader.setFloat("seed",terrSeed);
+				terrain.makeVertices(&terrain.getVertices(), camera.Position.x, camera.Position.z);
+				vertices = terrain.getVertices();
+				updateBuffer(vertices);
+			}*/
 
+			if (shadowEnable) {
+				//Framebuffer first pass - Shadows
+			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+			glEnable(GL_DEPTH_TEST);
+			glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+			glClear(GL_DEPTH_BUFFER_BIT);
 
-		//Framebuffer second pass
-	/*	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glDisable(GL_DEPTH_TEST);
-		if (!depthDebug)
-			switch (postProcs) {
-			case 0:
-				postProcessor.use();
-				break;
-			case 1:
-				desat.use();
-				break;
-			case 2: invert.use();
-				break;
-			case 3: nightVision.use();
-				nightVision.setFloat("time", glfwGetTime());
-				break;
-			case 4: glitch.use();
-				glitch.setFloat("time", glfwGetTime());
-				break;
+			shadows.use();
+
+			renderTerrain(vertices);
+			
+			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			terrainShader.use();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, shadowMap);
+			renderTerrain(vertices);
 			}
-		else postProcessor.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
-		glBindTexture(GL_TEXTURE_2D, textureColourBuffer);
-		
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		renderQuad();
-		*/
 
+			else {
+				glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+				terrainShader.use();
+				terrainShader.setFloat("seed", terrSeed);
+				glEnable(GL_DEPTH_TEST);
+
+
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				
+				renderTerrain(vertices);
+
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				switch (postProcs) {
+				case 0:
+					postProcessor.use();
+					break;
+				case 1:
+					desat.use();
+					break;
+				case 2: invert.use();
+					break;
+				case 3: nightVision.use();
+					nightVision.setFloat("time", glfwGetTime());
+					break;
+				case 4: glitch.use();
+					glitch.setFloat("time", glfwGetTime());
+					break;
+				}
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glDisable(GL_DEPTH_TEST);
+
+				
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, textureDepthBuffer);
+				glBindTexture(GL_TEXTURE_2D, textureColourBuffer);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				renderQuad();
+			}
+				
+
+
+
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			//renderTerrain(vertices);
+		}
 		
-		glBindVertexArray(VAO);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glDrawArrays(GL_PATCHES, 0, vertices.size() / 3);
+
+		if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
 			camera.printCameraCoords();
+
+		if ((glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) && rPress == false)
+		{
+			terrSeed = rand();
+			terrainShader.setFloat("seed", terrSeed);
+			rPress = true;
+		}
+		
+
+		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
+			rPress = false;
 
 
 		glfwSwapBuffers(window);
@@ -295,6 +347,38 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
 		postProcs = 4;
 
+
+	
+	if ((glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) && gPress == false)
+	{
+		gammaCor = !gammaCor;
+		gPress = true;
+	}
+	if ((glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) && tPress == false)
+	{
+		shadowEnable = !shadowEnable;
+		tPress = true;
+	}
+	if ((glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) && fPress == false)
+	{
+		fogEnable = !fogEnable;
+		fPress = true;
+	}
+	if ((glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS) && yPress == false)
+	{
+		showDepth = !showDepth;
+		yPress = true;
+	}
+
+
+	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_RELEASE)
+		gPress = false;
+	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_RELEASE)
+		tPress = false;
+	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE)
+		fPress = false;
+	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_RELEASE)
+		yPress = false;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -323,9 +407,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 	camera.ProcessMouseMovement(xoffset, yoffset);
 }
-
-
-
 
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
@@ -399,6 +480,27 @@ void setVAO(vector <float> vertices) {
 	glBindVertexArray(0);
 }
 
+void updateBuffer(vector<float> vertices)
+{
+	
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, (vertices.size() * sizeof(GLfloat)), vertices.data(), GL_STATIC_DRAW);
+
+	//xyz
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	//texture
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	//normals
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void setFBOcolour()
 {
 	glGenFramebuffers(1, &FBO);
@@ -440,22 +542,21 @@ void setFBOdepth()
 
 }
 
-void setShadowFBO()
+void setShadowBuffer() 
 {
-	glGenFramebuffers(1, &shadowFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	glGenFramebuffers(1, &shadowMapFBO);
 
 	glGenTextures(1, &shadowMap);
 	glBindTexture(GL_TEXTURE_2D, shadowMap);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
@@ -484,5 +585,11 @@ void renderQuad()
 	glBindVertexArray(quadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
+}
+void renderTerrain(vector<float> vertices)
+{
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_PATCHES, 0, vertices.size() / 3);
+	//glBindVertexArray(0);
 }
 

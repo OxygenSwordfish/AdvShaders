@@ -1,11 +1,16 @@
 ﻿  Source.cpp
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(130): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(163): warning C4305: 'argument': truncation from 'double' to 'float'
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(313): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(314): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(318): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(319): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(321): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(322): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(335): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(130): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(131): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(142): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(174): warning C4305: 'argument': truncation from 'double' to 'float'
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(268): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(271): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(301): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(397): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(398): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(402): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(403): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(405): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(406): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\thomas\source\repos\advshaders\terrain\terrain\src\source.cpp(416): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
   Terrain.vcxproj -> C:\Users\Thomas\source\repos\AdvShaders\Terrain\Debug\Terrain.exe
