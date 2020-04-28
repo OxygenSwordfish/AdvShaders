@@ -68,9 +68,9 @@ float terrSeed = 0.0f;
 const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
 //Toggles for effects
-bool rPress, gPress, tPress, fPress, yPress = false;
+bool rPress, gPress, tPress, fPress, yPress, hPress = false;
 
-bool fogEnable, gammaCor, shadowEnable, showDepth = false;
+bool fogEnable, gammaCor, shadowEnable, showDepth, blinn = false;
 
 int main()
 {
@@ -186,7 +186,7 @@ int main()
 		terrainShader.setBool("shadowEnable", shadowEnable);
 		terrainShader.setBool("fogEnable", fogEnable);
 		terrainShader.setBool("gammaCor", gammaCor);
-
+		terrainShader.setBool("blinn", blinn);
 		shadows.use();
 		shadows.setMat4("lightSpaceMatrix",lightSpaceMatrix);
 
@@ -369,6 +369,11 @@ void processInput(GLFWwindow *window)
 		showDepth = !showDepth;
 		yPress = true;
 	}
+	if ((glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) && hPress == false)
+	{
+		blinn = !blinn;
+		hPress = true;
+	}
 
 
 	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_RELEASE)
@@ -379,6 +384,8 @@ void processInput(GLFWwindow *window)
 		fPress = false;
 	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_RELEASE)
 		yPress = false;
+	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
+		hPress = false;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

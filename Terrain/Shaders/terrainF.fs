@@ -32,7 +32,7 @@ uniform Material mat ;
 uniform vec3 viewPos ;
 uniform vec4 sky;
 vec3 colour;
-
+uniform float blinn;
 
 uniform mat4 lightSpaceMatrix;
 
@@ -41,7 +41,7 @@ uniform sampler2D shadowMap;
 float gamma = 2.2;
 float calcShadows(vec4 fragPosLightSpace);
 
-
+float spec = 0.0f;
 uniform bool fogEnable, gammaCor, shadowEnable;
 
 void main()
@@ -74,8 +74,16 @@ void main()
     // diffuse shading
     float diff = max(dot(norm, dirLight.direction), 0.0);
     // specular shading
-    vec3 reflectDir = reflect(-dirLight.direction, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), mat.shininess);
+	if(blinn)
+	{
+		vec3 halfwayDir = normalize(lightDir + viewDir);
+		spec = pow(max(dot(norm,halfwayDir),0.0),16.0);
+	}
+	else
+	{
+		vec3 reflectDir = reflect(-dirLight.direction, norm);
+		spec = pow(max(dot(viewDir, reflectDir), 0.0), mat.shininess);
+	}
     // combine results
    
     vec3 diffuse  = dirLight.diffuse * (diff * mat.diffuse);

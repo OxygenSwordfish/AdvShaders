@@ -7,7 +7,7 @@ Terrain::Terrain(int widthIn, int heightIn, int stepSizeIn)
 	width = widthIn;
 	height = heightIn;
 	stepSize = stepSizeIn;
-	//makeVertices(&vertices, 0.0f, 0.0f);
+	
 
 }
 
